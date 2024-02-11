@@ -1,0 +1,50 @@
+#for states
+library(readr)
+library(fpp3)
+pricecatcher_2022_02 <- read_csv("C:/Users/Asus/Downloads/pricecatcher_2022-02.csv")
+lookup_premise <- read_csv("C:/Users/Asus/Downloads/lookup_premise.csv")
+lookup_item <- read_csv("C:/Users/Asus/Downloads/lookup_item.csv")
+
+a <- pricecatcher_2022_02|> left_join(lookup_premise,by="premise_code")|> select(premise_code,item_code,premise_type,state,price)
+b <- a |> left_join(lookup_item,by="item_code")
+
+data <- b|> select(state,item_group,price)
+long <- data |> group_by(state,item_group) |> summarise(price=mean(price))
+wide <- long |> pivot_wider(names_from=item_group,values_from=price)
+wide <- na.omit(wide)
+
+wide <- column_to_rownames(wide,var="state")
+colnames(wide) <- c("Packaged Goods","Dried Goods","Fresh Goods","Ready-to-eat Food","Beverages","Cleaning Products","Milk and Baby Products")
+
+library(tidyverse)
+library(cluster)
+library(factoextra)
+wide<- scale(wide)
+
+distance <- get_dist(wide[,1:7])
+
+fviz_dist(distance, lab_size=4, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07")) + ggtitle("Distance Matrix Between State")
+
+#elbow method
+set.seed(6)
+fviz_nbclust(wide[,1:7], kmeans, method = "wss")
+
+#gap statistic
+gap_stat <- clusGap(wide[,1:7],FUN=pam,K.max=10,B=50)
+fviz_gap_stat(gap_stat)
+
+#kmean clustering
+k2 <- kmeans(wide[,1:7],centers=2,nstart=25)
+k3 <- kmeans(wide[,1:7],centers=3,nstart=25)
+k4 <- kmeans(wide[,1:7],centers=4,nstart=25)
+k5 <- kmeans(wide[,1:7],centers=5,nstart=25)
+k6 <- kmeans(wide[,1:7],centers=6,nstart=25)
+k7 <- kmeans(wide[,1:7],centers=7,nstart=25)
+
+
+fviz_cluster(k2,data=wide[,1:7]) +ggtitle("k=2")
+fviz_cluster(k3,data=wide[,1:7]) +ggtitle("k=3")
+fviz_cluster(k4,data=wide[,1:7]) +ggtitle("k=4")
+fviz_cluster(k5,data=wide[,1:7]) +ggtitle("k=5")
+fviz_cluster(k6,data=wide[,1:7]) +ggtitle("k=6")
+fviz_cluster(k7,data=wide[,1:7]) +ggtitle("k=7")
