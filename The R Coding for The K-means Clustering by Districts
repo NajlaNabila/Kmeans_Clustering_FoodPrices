@@ -1,0 +1,46 @@
+#load packages 
+library(readr)
+library(fpp3)
+
+#import the data and left join the data for the analysis
+pricecatcher_2022_02 <- read_csv("D:/Locker/UM/Year 3 Semester 1/SIT3017 Data Mining/Assignment/pricecatcher_2022-02.csv")
+lookup_premise <- read_csv("D:\\Locker\\UM\\Year 3 Semester 1\\SIT3017 Data Mining\\Assignment\\lookup_premise.csv")
+lookup_item <- read_csv("D:\\Locker\\UM\\Year 3 Semester 1\\SIT3017 Data Mining\\Assignment\\lookup_item.csv")
+a <- pricecatcher_2022_02 |> left_join(lookup_premise,by="premise_code")|> select(premise_code,item_code,premise_type,district,price)
+b <- a |> left_join(lookup_item,by="item_code")
+data <- b|> select(district,item_group,price)
+
+#cleaning the data
+long2 <- data |> group_by(district,item_group)|> summarise(price=mean(price))
+wide2 <- long2 |> pivot_wider(names_from=item_group,values_from=price)
+wide2 <- na.omit(wide2)
+wide2 <- column_to_rownames(wide2,var="district")
+wide2 <- scale(wide2)
+colnames(wide2) <- c("Packaged Goods","Dried Goods","Fresh Goods","Ready-to-eat Food","Beverages","Cleaning Products","Milk and Baby Products") #change the column names
+
+#plot the distance matrix
+library(tidyverse)
+library(cluster)
+library(factoextra)
+distance <- get_dist(wide2[,])
+fviz_dist(distance, lab_size=4, gradient = list(low =  "#00AFBB", mid = "white", high = "#FC4E07")) 
+
+#elbow method
+set.seed(6)
+fviz_nbclust(wide2[,], kmeans, method = "wss")
+
+k2 <- kmeans(wide2[,], centers = 2, nstart = 25)
+k3 <- kmeans(wide2[,], centers = 3, nstart = 25) 
+k4 <- kmeans(wide2[,], centers = 4, nstart = 25) 
+k5 <- kmeans(wide2[,], centers = 5, nstart = 25) 
+k6 <- kmeans(wide2[,], centers = 6, nstart = 25) 
+k7 <- kmeans(wide2[,], centers = 7, nstart = 25) 
+k8 <- kmeans(wide2[,], centers = 7, nstart = 25) 
+
+fviz_cluster(k2, data = wide2[,]) + ggtitle("k=2")
+fviz_cluster(k3, data = wide2[,]) + ggtitle("k=3")
+fviz_cluster(k4, data = wide2[,]) + ggtitle("k=4")
+fviz_cluster(k5, data = wide2[,]) + ggtitle("k=5")
+fviz_cluster(k6, data = wide2[,]) + ggtitle("k=6")
+fviz_cluster(k7, data = wide2[,]) + ggtitle("k=7")
+fviz_cluster(k8, data = wide2[,]) + ggtitle("k=8")
